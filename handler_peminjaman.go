@@ -55,6 +55,11 @@ func (s *Store) handleCreatePeminjaman(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if s.isBentrok(req.SumberDayaID, req.Tanggal, req.SlotMulai, req.SlotSelesai, req.Jumlah, 0) {
+		sendError(w, http.StatusConflict, "Slot pada tanggal dan jam tersebut sudah dipesan (bentrok)")
+		return
+	}
+
 	newPinjam := Peminjaman{
 		ID:           s.nextPeminjamanID,
 		SumberDayaID: req.SumberDayaID,
@@ -134,4 +139,33 @@ func (s *Store) handleGetPeminjamanByID(w http.ResponseWriter, r *http.Request) 
 	}
 
 	sendJSON(w, http.StatusOK, p)
+}
+
+func (s *Store) isBentrok(sumberDayaID int, tanggal string, slotMulai, slotSelesai, jumlahBaru int, excludeID int) bool {
+	sd, exists := s.sumberDaya[sumberDayaID]
+	if !exists {
+		return false
+	}
+
+	for slot := slotMulai; slot <= slotSelesai; slot++ {
+		totalTerpakai := 0
+
+		for _, p := range s.peminjaman {
+			if excludeID > 0 && p.ID == excludeID {
+				continue
+			}
+
+			if p.SumberDayaID == sumberDayaID && p.Tanggal == tanggal && (p.Status == "diajukan" || p.Status == "disetujui") {
+				if slot >= p.SlotMulai && slot <= p.SlotSelesai {
+					totalTerpakai += p.Jumlah
+				}
+			}
+		}
+
+		if totalTerpakai+jumlahBaru > sd.Stok {
+			return true
+		}
+	}
+
+	return false
 }

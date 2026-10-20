@@ -14,13 +14,13 @@ Selain itu, ada struct 'Store' yang menjadi wadah penyimpanan utama yang menyimp
 Struct 'Store' sendiri bertujuan untuk mencegah kondisi race condition dan menjaga keterpusatan data saat tiap request memiliki jalurnya sendiri-sendiri. Dengan menyimpan data map dan kunci sync.Mutex dalam satu tempat, tidak akan terjadi data yang tertukar atau kunci yang hilang. Di sini juga terdapat penggunaan counter ID untuk memenuhi aturan increment pada soal. Dengan menaruh counter di wadah yang sama, penambahan ID juga akan dilakukan dengan perlindungan kunci sehingga tidak akan ada urutan ganda.
 
 ## 3. Satu keputusan desain
-(Satu keputusan yang kamu ambil, pilihan lain yang kamu pertimbangkan, dan alasanmu memilih yang ini. Contoh: kenapa cek bentrok per slot, bukan per rentang.)
+Pengecekan bentrok slot dilakukan dengan cara mengiterasi setiap slot jam satu per satu (slot 1 hingga 8), bukan memeriksa bentrok berdasarkan rentang awal dan akhir saja. Pilihan lain yang dipertimbangkan adalah menggunakan rumus irisan rentang matematika. Alasan memilih pengecekan per slot adalah karena setiap sumber daya memiliki jumlah kapasitas stok unit tertentu. Rumus irisan rentang biasa hanya mendeteksi apakah ada peminjaman lain di jam yang sama, tetapi tidak bisa menghitung akumulasi total unit yang terpakai jika terdapat beberapa peminjaman sekaligus di slot jam tersebut. Pengecekan per slot memastikan total unit terpakai di setiap jam tidak melebihi stok yang ada.
 
 ## 4. Bug atau kendala (minimal dua)
 ### Bug 1
-- Gejala:
-- Cara menemukan:
-- Penyebab dan solusi:
+- Gejala: Validasi nama sumber daya dan nama peminjam gagal mendeteksi batas panjang karakter dengan tepat saat menggunakan input karakter khusus.
+- Cara menemukan: Diperiksa saat penulisan logika validasi batas maksimal 50 karakter.
+- Penyebab dan solusi: Penggunaan fungsi bawaan len(string) di Go menghitung jumlah byte, bukan jumlah karakter. Pada karakter tertentu, 1 karakter bisa dihitung lebih dari 1 byte. Solusinya adalah mengonversi string ke slice rune lebih dulu dengan len([]rune(text)) agar jumlah karakter dihitung dengan benar sesuai spesifikasi kontrak API.
 
 ### Bug 2
 - Gejala:
